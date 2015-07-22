@@ -14,9 +14,14 @@ import hci.LinePlot;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.TreeMap;
 import java.util.Vector;
+
+import javax.imageio.ImageIO;
 
 import analytics.MyJDBC;
 import analytics.Utils;
@@ -38,7 +43,8 @@ public class ScubaNLGMain extends javax.swing.JFrame {
 	
 	AlladinLogMapView gPanel;
 	
-        
+	//private BufferedImage joyPicture;
+	
     /** Creates new ScubaNLGMain */
     public ScubaNLGMain() {
         ArrayList<String> diveLabels = new ArrayList<String>();
@@ -52,6 +58,12 @@ public class ScubaNLGMain extends javax.swing.JFrame {
          y.add(new Double(Utils.convertLatitude((String)dataBase.getValueAt(i,10))));
          diveLabels.add(String.valueOf(((Double)dataBase.getValueAt(i,0)).intValue()));
         }
+        
+        /*try {
+            joyPicture = ImageIO.read(new File("img/joy.jpeg"));
+         } catch (IOException e) {
+            System.out.println(e.toString());
+         }*/
         
         gPanel = new AlladinLogMapView(0,0,360,180,20,10,x,y,diveLabels,this);
         this.add(gPanel,java.awt.BorderLayout.CENTER);
@@ -83,10 +95,9 @@ public class ScubaNLGMain extends javax.swing.JFrame {
         return profile;
       }
     
-    /**
-     * Displays the dive profile and the text for the dive selected by the user
-     */
-
+/**
+ * Displays the dive profile and the text for the dive selected by the user
+ */
 public void displayReport(TreeMap<Long,Double> diveProfile, String text){
     long first = ((Long)profile.firstKey()).longValue();
     long last = ((Long)profile.lastKey()).longValue();

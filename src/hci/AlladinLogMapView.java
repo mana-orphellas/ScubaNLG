@@ -69,7 +69,7 @@ public class AlladinLogMapView extends Plot  implements MouseListener{
         this.yVals = yVal;
         this.diveLabels = diveLabels;
         try {
-           img = ImageIO.read(new File("world.gif"));
+           img = ImageIO.read(new File("img/world.gif"));
         } catch (IOException e) {
            System.out.println(e.toString());
         }
@@ -237,21 +237,21 @@ public class AlladinLogMapView extends Plot  implements MouseListener{
            double right = xval.doubleValue()+divePointSize/2;
            double top = yval.doubleValue()-divePointSize/2;
            double bottom = yval.doubleValue()+divePointSize/2;
-                if((left<xx)&&(xx<right)&&(top<yy)&&(yy<bottom)){
-                    index = i;
-                    
-                    setPointShape(xval.intValue(),yval.intValue());
-                    repaint();
-                    TreeMap<Long,Double> profile = myParent.readDiveProfile(index);
-                    
-                    DiveAnalyser analyser = new DiveAnalyser(myParent.getDiveNo(),profile);
-                    DiveFeatures diveFeatures = analyser.extractFeatures();
-                    DiveInterpreter interpreter = new DiveInterpreter(diveFeatures);
-                    diveFeatures = interpreter.interpretDive();
-                    Reporter reporter = new DiveReporter(diveFeatures);
-                	String text = reporter.generateText();
-                	myParent.displayReport(profile,text);
-                }
+           if((left<xx)&&(xx<right)&&(top<yy)&&(yy<bottom)) {
+			    index = i;
+			    
+			    setPointShape(xval.intValue(),yval.intValue());
+			    repaint();
+			    TreeMap<Long,Double> profile = myParent.readDiveProfile(index);
+			    
+			    DiveAnalyser analyser = new DiveAnalyser(myParent.getDiveNo(),profile);
+			    DiveFeatures diveFeatures = analyser.extractFeatures();
+			    DiveInterpreter interpreter = new DiveInterpreter(diveFeatures);
+			    diveFeatures = interpreter.interpretDive();
+			    Reporter reporter = new DiveReporter(diveFeatures);
+				String text = reporter.generateText();
+				myParent.displayReport(profile,text);
+			}
         }
     }
 
