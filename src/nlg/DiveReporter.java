@@ -39,6 +39,7 @@ public class DiveReporter implements Reporter {
 	public String generateText() {
 		String joyImgSrc = new File("img/joy.jpeg").toURI().toString();
 		String angerImgSrc = new File("img/anger.jpg").toURI().toString();
+		String sadnessImgSrc = new File("img/sadness.jpg").toURI().toString();
 		
 		String corpusText = CorpusText.getText(diveFeatures.getDiveNo().intValue());
 		
@@ -51,6 +52,11 @@ public class DiveReporter implements Reporter {
 		String angerText = diveFeaturesToText(diveFeatures, speakerModel);
 		angerText = angerText.replaceAll("!\\.", "!");
 		angerText = angerText.replaceAll("\\?\\.", "?");
+		
+		speakerModel.update(Speakers.SADNESS);
+		String sadnessText = diveFeaturesToText(diveFeatures, speakerModel);
+		sadnessText = sadnessText.replaceAll("!\\.", "!");
+		sadnessText = sadnessText.replaceAll("\\?\\.", "?");
 		
 		return corpusText +
 				"<br><br>" +
@@ -65,6 +71,13 @@ public class DiveReporter implements Reporter {
 					"<tr>" + 
 						"<td><img src='" + angerImgSrc + "' height='100' width='100' style='vertical-align:middle;' /></td>" + 
 						"<td>" + angerText + "</td>" +
+					"</tr>" +
+				"</table>" +
+				"<br><br>" +
+				"<table>" + 
+					"<tr>" + 
+						"<td><img src='" + sadnessImgSrc + "' height='100' width='100' style='vertical-align:middle;' /></td>" + 
+						"<td>" + sadnessText + "</td>" +
 					"</tr>" +
 				"</table>";
 	}
@@ -85,12 +98,20 @@ public class DiveReporter implements Reporter {
 					if(nextElement != null && !(currentElement instanceof CoordinatedPhraseElement)) {
 						if(randomGenerator.nextBoolean()) {
 							CoordinatedPhraseElement contrast = Realizer.factory.createCoordinatedPhrase(currentElement, nextElement);
-							contrast.setConjunction("but");
+							if(speakerModel.getSpeaker() == Speakers.SADNESS) {
+								contrast.setConjunction("mais");
+							} else {
+								contrast.setConjunction("but");
+							}
 							document.addComponent(Realizer.factory.createSentence(contrast));
 						} else {
 							document.addComponent(Realizer.factory.createSentence(currentElement));
 							DocumentElement sentence = Realizer.factory.createSentence();
-							sentence.addComponent(Realizer.factory.createStringElement("however"));
+							if(speakerModel.getSpeaker() == Speakers.SADNESS) {
+								sentence.addComponent(Realizer.factory.createStringElement("cependant"));
+							} else {
+								sentence.addComponent(Realizer.factory.createStringElement("however"));
+							}
 							sentence.addComponent(nextElement);
 							document.addComponent(sentence);
 						}
