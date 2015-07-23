@@ -3,18 +3,21 @@ package nlg;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import nlg.components.Realizer;
 import nlg.components.SpeakerModel;
 import nlg.components.SpeakerModel.Speakers;
 import nlg.messages.Message;
 import nlg.messages.MessageAscent;
+import nlg.messages.MessageCombinedDiveDepth;
 import nlg.messages.MessageDiveDepth;
 import nlg.messages.MessageDiveSummary;
 import nlg.messages.MessageExcessBottomTime;
 import nlg.messages.MessageNumberOfDives;
 import nlg.messages.MessageSafetyStop;
 import nlg.messages.MessageShallowDive;
+import simplenlg.framework.CoordinatedPhraseElement;
 import simplenlg.framework.DocumentElement;
 import simplenlg.framework.NLGElement;
 import analytics.DiveFeatures;
@@ -22,6 +25,8 @@ import analytics.DiveletFeatures;
 
 public class DiveReporter implements Reporter {
 	DiveFeatures diveFeatures;
+	
+	private static Random randomGenerator = new Random();
 
 	public DiveReporter(DiveFeatures diveFeatures) {
 		this.diveFeatures = diveFeatures;
@@ -69,10 +74,34 @@ public class DiveReporter implements Reporter {
 		
 		List<Message> allMessages = extractDiveMessages(diveFeatures);
 		
-		for(Message message: allMessages) {
-			NLGElement element = message.getText(speakerModel);
-			if(element != null)
-				document.addComponent(Realizer.factory.createSentence(element));
+		for(int i = 0; i < allMessages.size(); ++i) {
+			Message currentMessage = allMessages.get(i);
+			NLGElement currentElement = currentMessage.getText(speakerModel);
+			
+			if(currentElement != null) {
+				Message nextMessage = i + 1 < allMessages.size() ? allMessages.get(i + 1) : null;
+				if(nextMessage != null && currentMessage.getPolarity().isOpposite(nextMessage.getPolarity())) {
+					NLGElement nextElement = nextMessage.getText(speakerModel);
+					if(nextElement != null && !(currentElement instanceof CoordinatedPhraseElement)) {
+						if(randomGenerator.nextBoolean()) {
+							CoordinatedPhraseElement contrast = Realizer.factory.createCoordinatedPhrase(currentElement, nextElement);
+							contrast.setConjunction("but");
+							document.addComponent(Realizer.factory.createSentence(contrast));
+						} else {
+							document.addComponent(Realizer.factory.createSentence(currentElement));
+							DocumentElement sentence = Realizer.factory.createSentence();
+							sentence.addComponent(Realizer.factory.createStringElement("however"));
+							sentence.addComponent(nextElement);
+							document.addComponent(sentence);
+						}
+						i++;
+					} else {
+						document.addComponent(Realizer.factory.createSentence(currentElement));
+					}
+				} else {
+					document.addComponent(Realizer.factory.createSentence(currentElement));
+				}
+			}
 		}
 		
 		return Realizer.realiser.realise(document).getRealisation();
@@ -82,8 +111,10 @@ public class DiveReporter implements Reporter {
 		List<Message> messages = new ArrayList<Message>();
 		
 		messages.addAll(extractGeneralDiveMessages(diveFeatures));
-		messages.addAll(extractDiveletMessages(diveFeatures.getFirstDiveletFeatures(), diveFeatures.getNumOfDivelets() > 1 ? 1 : 0));
-		messages.addAll(extractDiveletMessages(diveFeatures.getSecondDiveletFeatures(), diveFeatures.getNumOfDivelets() > 1 ? 2 : 0));
+		messages.addAll(extractDiveletMessages(diveFeatures, diveFeatures.getNumOfDivelets() > 1 ? 1 : 0));
+		if(diveFeatures.getNumOfDivelets() > 1) {
+			messages.addAll(extractDiveletMessages(diveFeatures, 2));
+		}
 		
 		return messages;
 	}
@@ -102,16 +133,23 @@ public class DiveReporter implements Reporter {
 		return messages;
 	}
 	
-	private static List<Message> extractDiveletMessages(DiveletFeatures diveletFeatures, int diveNumber) {
+	private static List<Message> extractDiveletMessages(DiveFeatures diveFeatures, int diveNumber) {
 		List<Message> messages = new ArrayList<Message>();
+		DiveletFeatures diveletFeatures = diveNumber == 2 ? diveFeatures.getSecondDiveletFeatures() : diveFeatures.getFirstDiveletFeatures();
 		
 		if(diveletFeatures == null) return messages;
 		
 		MessageDiveSummary diveSummary = new MessageDiveSummary(diveletFeatures, diveNumber);
 		messages.add(diveSummary);
 		
-		MessageDiveDepth diveDepth = new MessageDiveDepth(diveletFeatures.getDiveDepth(), diveletFeatures.getExcessDiveDepth());
-		messages.add(diveDepth);
+		if(diveNumber == 0) {
+			MessageDiveDepth diveDepth = new MessageDiveDepth(diveletFeatures.getDiveDepth(), diveletFeatures.getExcessDiveDepth());
+			messages.add(diveDepth);
+		} else if(diveNumber == 2) {
+			MessageCombinedDiveDepth diveDepths = new MessageCombinedDiveDepth(diveFeatures.getFirstDiveletFeatures().getDiveDepth(), diveFeatures.getSecondDiveletFeatures().getDiveDepth());
+			messages.add(diveDepths);
+		}
+		
 		
 		MessageAscent ascent = new MessageAscent(diveletFeatures.getAscentSpeed());
 		messages.add(ascent);
